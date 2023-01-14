@@ -1,0 +1,167 @@
+{
+"AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "my first cloud formation template",
+    "Metadata": {
+
+    },
+    "Parameters": {
+    "vpcCidr": {
+        "Description": "cidr block for my vpc",
+        "Type": "String",
+        "Default": ""
+    }
+     
+    },
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+    "bwvpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": 
+        { "Ref": "vpcCidr" }
+        ,
+        "Tags": [
+        
+        { "Key": "Name", "Value":  "bwvpc" }
+        ]
+      }
+    },
+
+    
+    "PubSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": "ca-central-1a",
+        "VpcId": 
+        { "Ref": "bwvpc" }, 
+        "CidrBlock": "10.0.1.0/24",
+        "Tags":[
+        { "Key": "Name", "Value":  "PubSubnet" }
+      ]
+      }
+    },
+
+    
+    "PriSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": "ca-central-1b",
+        "VpcId": 
+        { "Ref": "bwvpc" }, 
+        "CidrBlock": "10.0.2.0/24",
+        "Tags": [
+        { "Key": "Name", "Value":  "PriSubnet" }
+        ] 
+      }
+    },
+
+    "DemoIgw": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+        { "Key": "Name", "Value":  "DemoIgw" }
+        ]
+      }
+    },
+    "AttachGateway": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": 
+        { "Ref": "bwvpc" },  
+        "InternetGatewayId": { "Ref": "DemoIgw" }
+      }
+    },
+    
+    "PubRoutetable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": 
+        { "Ref": "bwvpc" }, 
+        "Tags": [
+        { "Key": "Name", "Value":  "PubRoutetable" }
+        ]
+      }
+    },
+
+    "PubRTassociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": 
+        { "Ref": "PubSubnet" },  
+        "RouteTableId": "PubRoutetable"
+      }
+    },
+    
+
+    
+    "PriRoutetable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": 
+        { "Ref": "bwvpc" },
+        "Tags": [
+        { "Key": "Name", "Value":  "PriRoutetable" }
+        ] 
+      }
+    },
+
+    
+    "PriRTassociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": 
+        { "Ref": "PriSubnet" }, 
+        "RouteTableId": "PriRoutetable"
+      }
+    },
+
+    "DemoNatgw" : {
+        "Type" : "AWS::EC2::NatGateway",
+        "Properties" : {
+           "AllocationId" : { 
+               "Fn::GetAtt" : ["NATGatewayEIP", "AllocationId"] 
+           },
+           "SubnetId" : { 
+               "Ref" : "PubSubnet" 
+           },
+           "Tags" : [ 
+               {"Key" : "Name", "Value" : "DemoNatgw" } 
+           ]
+          }
+     },
+     
+     "NATGatewayEIP" : {
+        "Type" : "AWS::EC2::EIP",
+        "Properties" : {
+           "Domain" : 
+           { "Ref": "bwvpc" }
+           
+        }
+     },
+     "RouteNATGateway" : {
+        "DependsOn": [ "DemoNatgw" ],
+        "Type" : "AWS::EC2::Route",
+        "Properties" : {
+           "RouteTableId" : { "Ref" : "PriRoutetable" },
+           "DestinationCidrBlock" : "10.0.2.0/24",
+           "NatGatewayId" : { "Ref" : "DemoNatgw" }
+        }
+     }
+    
+
+    },
+    "Outputs": {
+
+    }
+}
+
+
+
+
+
+

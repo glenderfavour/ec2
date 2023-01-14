@@ -1,0 +1,163 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "my first cloudformation template",
+        "Metadata": {
+        },
+        "Parameters": {
+        "vpcCidr": {
+            "Description": "cidr block for my vpc",
+            "Type": "String",
+            "Default": ""
+        }
+        },
+        "Mappings": {
+        },
+        "Conditions": {
+        },
+        "Resources": {
+        "bwvpc": {
+          "Type": "AWS::EC2::VPC",
+          "Properties": {
+            "CidrBlock":
+            { "Ref": "vpcCidr" }
+            ,
+            "Tags": [
+            { "Key": "Name", "Value":  "bwvpc" }
+            ]
+          }
+        },
+         "publicsubnet": {
+           "Type": "AWS::EC2::Subnet",
+           "Properties": {
+             "AvailabilityZone": "ca-central-1a",
+             "VpcId":
+             { "Ref": "bwvpc" }
+             ,
+             "CidrBlock": "10.0.1.0/26",
+             "Tags": [
+             { "Key": "Name", "Value":  "pubsubnet" }
+             ]
+           }
+         },
+
+         
+         "privatesubnet": {
+           "Type": "AWS::EC2::Subnet",
+           "Properties": {
+             "AvailabilityZone": "ca-central-1b",
+             "VpcId": 
+             { "Ref": "bwvpc" },
+             "CidrBlock": "10.0.2.0/26",
+             "Tags": [
+             { "Key": "Name", "Value":  "prisubnet" }
+             ]
+           }
+         },
+         
+
+         
+         "vpcIgw": {
+           "Type": "AWS::EC2::InternetGateway",
+           "Properties": {
+             "Tags": [
+             { "Key": "Name", "Value":  "MyIgw" }
+             ]
+           }
+         },
+         "AttachGateway": {
+           "Type": "AWS::EC2::VPCGatewayAttachment",
+           "Properties": {
+             "VpcId": 
+             { "Ref": "bwvpc" },
+             "InternetGatewayId": { "Ref": "vpcIgw" }
+           }
+         },
+
+         
+         "igwRT": {
+           "Type": "AWS::EC2::RouteTable",
+           "Properties": {
+             "VpcId": 
+             { "Ref": "bwvpc" },
+             "Tags": [
+             { "Key": "Name", "Value":  "PubRT" }
+             ]
+           }
+         },
+
+         
+         "pubRoute": {
+           "Type": "AWS::EC2::Route",
+           "Properties": {
+             "RouteTableId": "igwRT",
+             "DestinationCidrBlock": "0.0.0.0/0",
+             "GatewayId": 
+             { "Ref": "vpcIgw" }
+             
+           }
+         },
+
+         
+         "pubSubRTAss": {
+           "Type": "AWS::EC2::SubnetRouteTableAssociation",
+           "Properties": {
+             "SubnetId": 
+             { "Ref": "publicsubnet" },
+             "RouteTableId": 
+             { "Ref": "igwRT" }
+             
+           }
+         },
+
+
+         "myNgw" : {
+            "Type" : "AWS::EC2::NatGateway",
+            "Properties" : {
+               "AllocationId" : { 
+                   "Fn::GetAtt" : ["NATGatewayEIP", "AllocationId"] 
+               },
+               "SubnetId" : { 
+                   "Ref" : "publicsubnet" 
+               },
+               "Tags" : [ 
+                   {"Key" : "Name", "Value" : "myNgw" } 
+               ]
+              }
+         },
+         "NATGatewayEIP" : {
+            "Type" : "AWS::EC2::EIP",
+            "Properties" : {
+               "Domain" : "vpc"
+            }
+         },
+
+         
+         "ngwRT": {
+           "Type": "AWS::EC2::RouteTable",
+           "Properties": {
+             "VpcId": 
+             { "Ref": "bwvpc" },
+                   "Tags": [
+             { "Key": "Name", "Value":  "ngwRT" }
+             ]
+           }
+         },
+         
+         "ngwRoute" : {
+            "DependsOn": [ "NATGateway" ],
+            "Type" : "AWS::EC2::Route",
+            "Properties" : {
+               "RouteTableId" : { "Ref" : "ngwRT" },
+               "DestinationCidrBlock" : "10.0.2.0/26",
+               "NatGatewayId" : { "Ref" : "myNgw" }
+            }
+         }
+
+        
+         
+         
+        
+             },
+             "Outputs": {
+             }
+              }
